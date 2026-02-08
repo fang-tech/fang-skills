@@ -70,7 +70,7 @@ description: 自顶向下地引导用户理解 Java/Maven 项目的结构、架�
 **入门用户**：
 - 遇到 Maven 概念（lifecycle、phase、goal、plugin）时必须解释是什么、为什么需要
 - 遇到设计模式时用简单类比解释（如："工厂模式就像一个车间，你告诉它要什么产品，它帮你生产"）
-- 遇到框架注解（`@Autowired`、`@Bean`、`@SparkExtension` 等）时解释注解的含义和作用机制
+- 遇到框架注解（如 `@Autowired`、`@Bean`、`@Component` 等）时解释注解的含义和作用机制
 - 代码阅读时先说"这段代码在做什么"，再说"怎么做的"
 - 主动补充前置知识："在看这个之前，你需要知道 XXX 的概念..."
 - 术语表（glossary.md）中对每个术语都给出通俗解释
@@ -176,15 +176,15 @@ description: 自顶向下地引导用户理解 Java/Maven 项目的结构、架�
 ### 遇到以下情况时必须主动解释
 
 1. **项目内部约定**：自定义注解、命名约定、内部 DSL、配置键名
-   - 错误示范：`"AscendConf 中定义了配置"`
-   - 正确示范：`"AscendConf 是这个项目的统一配置管理类，所有 Spark 相关的配置项都在这里注册。每个配置通过 buildConf() 方法定义，包含键名、默认值和文档说明。"`
+   - 错误示范：`"AppConfig 中定义了配置"`（用户不知道 AppConfig 是什么、在项目中起什么作用）
+   - 正确示范：`"AppConfig 是这个项目的统一配置管理类，所有业务相关的配置项都在这里集中注册。每个配置通过 buildConf() 方法定义，包含键名、默认值和文档说明。"`
 
 2. **隐式依赖和魔法行为**：SPI、反射加载、auto-configuration、隐式转换
    - 这些代码中"看不到的连接"是用户最容易困惑的地方
    - 必须明确指出："这个类不是直接被调用的，而是通过 XXX 机制自动加载的"
 
 3. **框架约定优于配置**（Convention over Configuration）：
-   - Spring Boot 的自动装配、Maven 的目录约定、Spark 的 Extension 注册
+   - 如 Spring Boot 的自动装配、Maven 的标准目录结构、JPA 的命名查询等
    - 入门用户需要解释约定本身；熟悉用户需要指出项目对约定的定制
 
 4. **项目独有的架构模式**：
@@ -250,11 +250,12 @@ description: 自顶向下地引导用户理解 Java/Maven 项目的结构、架�
 
 ### 路径 B: 核心流程追踪
 
-1. **识别入口点**：
-   - Spring Boot: `@SpringBootApplication` 类
-   - Spark: `main` 方法 或 Extension/Plugin 注册点
-   - Library: 公共 API 接口
-   - Web: Controller 层
+1. **识别入口点**（根据项目类型判断）：
+   - Web 应用: Controller / Servlet / Filter
+   - Spring Boot: `@SpringBootApplication` 类、CommandLineRunner
+   - 独立应用: `main` 方法
+   - 框架插件: 扩展点注册、SPI 实现
+   - 类库: 公共 API 接口
 2. **从入口向下追踪**：调用链分析
 3. **标注关键节点**：配置加载、核心处理、数据转换等
 4. **在每个关键节点暂停**：检查用户是否理解到这一步
@@ -313,11 +314,16 @@ description: 自顶向下地引导用户理解 Java/Maven 项目的结构、架�
 **重要：深入模块时的"上下文补全"**：
 
 当用户直接跳到某个模块时，自动检查并补全前置知识：
+1. 这个模块被其他模块怎样使用？（调用方视角）
+2. 这个模块依赖哪些其他模块？（依赖方视角）
+3. 理解这个模块需要哪些前置知识？（框架、设计模式、领域概念）
+
+示例输出：
 ```
-在深入 spark-plugin 模块之前，有几个背景信息需要了解：
-1. 这个模块是作为 Spark 的 Extension 加载的（如果你不熟悉 Spark Extension 机制，我可以先解释）
-2. 它依赖 core 模块中的 XXX 接口
-3. 它的配置项都注册在 AscendConf 中
+在深入 {module-name} 模块之前，有几个背景信息需要了解：
+1. 这个模块的定位是 {一句话描述}
+2. 它依赖 {other-module} 中的 {接口/类}（{简述依赖关系}）
+3. 理解它需要了解 {前置概念}（如果你不熟悉，我可以先解释）
 
 需要我先展开哪个背景知识，还是直接开始看代码？
 ```
@@ -397,18 +403,17 @@ description: 自顶向下地引导用户理解 Java/Maven 项目的结构、架�
 3. **保持一致性**：使用统一的术语和格式
 4. **关联引用**：在文档间使用相对链接互相引用
 5. **标注知识前提**：在文档段落旁标注理解该段落需要的前置知识
-   - `<!-- 前置知识: Maven 生命周期, Spark Extension 机制 -->`
+   - `<!-- 前置知识: Maven 生命周期, Spring AOP -->`（使用 HTML 注释，不干扰正文阅读）
 
 ---
 
 ## 特殊场景处理
 
-### Scala 混合项目
-如果项目包含 `src/main/scala/`，额外关注：
-- Scala 特有的模式匹配、隐式转换、case class
-- Spark SQL Extensions、Catalyst 规则
-- SBT 和 Maven 混合构建
-- **注意**：入门用户可能不了解 Scala，需要解释与 Java 的关键差异
+### 多语言混合项目（Scala / Kotlin / Groovy）
+如果项目包含非 Java 的 JVM 语言（如 `src/main/scala/`、`src/main/kotlin/`）：
+- 先判断用户是否熟悉该语言，如不熟悉需要解释与 Java 的关键差异
+- 关注该语言的特有模式（如 Scala 的隐式转换/case class、Kotlin 的扩展函数/协程）
+- 关注混合编译的构建配置（如 scala-maven-plugin、kotlin-maven-plugin）
 
 ### 多仓库/子模块项目
 - 检查 `.gitmodules`
